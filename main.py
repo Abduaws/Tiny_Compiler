@@ -2,6 +2,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from sly import Lexer, Parser
 import os
 
+
 def resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
     try:
@@ -11,6 +12,8 @@ def resource_path(relative_path):
         base_path = os.path.abspath(".")
 
     return os.path.join(base_path, relative_path)
+
+
 class Compiler(Lexer):
     tokens = {NUMBER, ID,
               EQ, LT, LE, GT, GE, NE, OPERATION_AND, OPERATION_OR, OPERATION_NOT, OPEN_BRACKET, CLOSED_BRACKET}
@@ -41,63 +44,14 @@ class Compiler(Lexer):
     def error(self, t):
         raise ValueError('Line %d: Bad character %r' % (self.lineno, t.value[0]))
         self.index += 1
+
+
 class ParserZ(Parser):
     tokens = Compiler.tokens
 
     def __init__(self):
         self.env = {}
 
-    # @_('expr EQ expr')
-    # def expr(self, p):
-    #     return ('==', p.expr0, p.expr1)
-    #
-    # @_('expr NE expr')
-    # def expr(self, p):
-    #     return ('!=', p.expr0, p.expr1)
-    #
-    # @_('expr GE expr')
-    # def expr(self, p):
-    #     return ('>=', p.expr0, p.expr1)
-    #
-    # @_('expr LE expr')
-    # def expr(self, p):
-    #     return ('<=', p.expr0, p.expr1)
-    #
-    # @_('expr LT expr')
-    # def expr(self, p):
-    #     return ('<', p.expr0, p.expr1)
-    #
-    # @_('expr GT expr')
-    # def expr(self, p):
-    #     return ('>', p.expr0, p.expr1)
-    #
-    # @_('expr OPERATION_AND expr')
-    # def expr(self, p):
-    #     return ('&&', p.expr0, p.expr1)
-    #
-    # @_('expr OPERATION_OR expr')
-    # def expr(self, p):
-    #     return ('||', p.expr0, p.expr1)
-    #
-    # @_('OPERATION_NOT expr')
-    # def expr(self, p):
-    #     return ('!', p.expr)
-    #
-    # @_('expr')
-    # def statement(self, p):
-    #     return (p.expr)
-    #
-    # @_('OPEN_BRACKET expr CLOSED_BRACKET')
-    # def expr(self, p):
-    #     return (p.expr)
-    #
-    # @_('ID')
-    # def expr(self, p):
-    #     return (p.ID)
-    #
-    # @_('NUMBER')
-    # def expr(self, p):
-    #     return (p.NUMBER)
     @_('expr')
     def statment(self, p):
         return (p.expr)
@@ -173,6 +127,8 @@ class ParserZ(Parser):
     @_('NUMBER')
     def identifier(self, p):
         return (p.NUMBER)
+
+
 class dfaprev(QtWidgets.QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -181,6 +137,8 @@ class dfaprev(QtWidgets.QDialog):
         lay = QtWidgets.QVBoxLayout(self)
         lay.addWidget(self.image_lbl)
         self.image_lbl.setPixmap(QtGui.QPixmap(resource_path("ourdfa2.jpg")))
+
+
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("Tiny Language Compiler")
@@ -399,6 +357,8 @@ class Ui_MainWindow(object):
                     self.status = "Status: Parsing Failed"
         except:
             self.status = "Status: Parsing Failed"
+
+
 if __name__ == "__main__":
     import sys
     app = QtWidgets.QApplication(sys.argv)
