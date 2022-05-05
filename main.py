@@ -47,60 +47,131 @@ class ParserZ(Parser):
     def __init__(self):
         self.env = {}
 
-    @_('')
-    def statement(self, p):
-        pass
-
-    @_('expr EQ expr')
-    def expr(self, p):
-        return ('==', p.expr0, p.expr1)
-
-    @_('expr NE expr')
-    def expr(self, p):
-        return ('!=', p.expr0, p.expr1)
-
-    @_('expr GE expr')
-    def expr(self, p):
-        return ('>=', p.expr0, p.expr1)
-
-    @_('expr LE expr')
-    def expr(self, p):
-        return ('<=', p.expr0, p.expr1)
-
-    @_('expr LT expr')
-    def expr(self, p):
-        return ('<', p.expr0, p.expr1)
-
-    @_('expr GT expr')
-    def expr(self, p):
-        return ('>', p.expr0, p.expr1)
-
-    @_('expr OPERATION_AND expr')
-    def expr(self, p):
-        return ('&&', p.expr0, p.expr1)
-
-    @_('expr OPERATION_OR expr')
-    def expr(self, p):
-        return ('||', p.expr0, p.expr1)
-
-    @_('OPERATION_NOT expr')
-    def expr(self, p):
-        return ('!', p.expr)
-
+    # @_('expr EQ expr')
+    # def expr(self, p):
+    #     return ('==', p.expr0, p.expr1)
+    #
+    # @_('expr NE expr')
+    # def expr(self, p):
+    #     return ('!=', p.expr0, p.expr1)
+    #
+    # @_('expr GE expr')
+    # def expr(self, p):
+    #     return ('>=', p.expr0, p.expr1)
+    #
+    # @_('expr LE expr')
+    # def expr(self, p):
+    #     return ('<=', p.expr0, p.expr1)
+    #
+    # @_('expr LT expr')
+    # def expr(self, p):
+    #     return ('<', p.expr0, p.expr1)
+    #
+    # @_('expr GT expr')
+    # def expr(self, p):
+    #     return ('>', p.expr0, p.expr1)
+    #
+    # @_('expr OPERATION_AND expr')
+    # def expr(self, p):
+    #     return ('&&', p.expr0, p.expr1)
+    #
+    # @_('expr OPERATION_OR expr')
+    # def expr(self, p):
+    #     return ('||', p.expr0, p.expr1)
+    #
+    # @_('OPERATION_NOT expr')
+    # def expr(self, p):
+    #     return ('!', p.expr)
+    #
+    # @_('expr')
+    # def statement(self, p):
+    #     return (p.expr)
+    #
+    # @_('OPEN_BRACKET expr CLOSED_BRACKET')
+    # def expr(self, p):
+    #     return (p.expr)
+    #
+    # @_('ID')
+    # def expr(self, p):
+    #     return (p.ID)
+    #
+    # @_('NUMBER')
+    # def expr(self, p):
+    #     return (p.NUMBER)
     @_('expr')
-    def statement(self, p):
+    def statment(self, p):
         return (p.expr)
+
+    @_('')
+    def statment(self, p):
+        pass
 
     @_('OPEN_BRACKET expr CLOSED_BRACKET')
     def expr(self, p):
-        return (p.expr)
+        return ("||", p.expr, p.term)
+
+    @_('expr OPERATION_OR term')
+    def expr(self, p):
+        return ("||", p.expr , p.term)
+
+    @_('term')
+    def expr(self, p):
+        return (p.term)
+
+    @_('term OPERATION_AND factor')
+    def term(self, p):
+        return ("&&", p.term, p.factor)
+
+    @_('factor')
+    def term(self, p):
+        return (p.factor)
+
+    @_('factor comop operand')
+    def factor(self, p):
+        return (p.comop, p.factor, p.operand)
+
+    @_('operand')
+    def factor(self, p):
+        return (p.operand)
+
+    @_('GT')
+    def comop(self, p):
+        return (">")
+
+    @_('GE')
+    def comop(self, p):
+        return (">=")
+
+    @_('LT')
+    def comop(self, p):
+        return ("<")
+
+    @_('LE')
+    def comop(self, p):
+        return ("<=")
+
+    @_('EQ')
+    def comop(self, p):
+        return ("==")
+
+    @_('NE')
+    def comop(self, p):
+        return ("!=")
+
+    @_('OPERATION_NOT operand')
+    def operand(self, p):
+        return ('!', p.operand)
+
+    @_('identifier')
+    def operand(self, p):
+        return (p.identifier)
 
     @_('ID')
-    def expr(self, p):
+    def identifier(self, p):
         return (p.ID)
 
     @_('NUMBER')
-    def expr(self, p):
+    def identifier(self, p):
         return (p.NUMBER)
 class dfaprev(QtWidgets.QDialog):
     def __init__(self, parent=None):
