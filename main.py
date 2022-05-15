@@ -12,8 +12,6 @@ def resource_path(relative_path):
         base_path = os.path.abspath(".")
 
     return os.path.join(base_path, relative_path)
-
-
 class Compiler(Lexer):
     tokens = {NUMBER, ID,
               EQ, LT, LE, GT, GE, NE, OPERATION_AND, OPERATION_OR, OPERATION_NOT, OPEN_BRACKET, CLOSED_BRACKET}
@@ -44,91 +42,142 @@ class Compiler(Lexer):
     def error(self, t):
         raise ValueError('Line %d: Bad character %r' % (self.lineno, t.value[0]))
         self.index += 1
+class Grammar():
 
+    def __init__(self, V=None, T=None, S=None, P=None):
+        if V:
+            self.variables = V
+        else:
+            self.variables = []
 
-class ParserZ(Parser):
-    tokens = Compiler.tokens
+        if S:
+            self.start = S
+        else:
+            self.start = ''
 
-    def __init__(self):
-        self.env = {}
+        if T:
+            self.terminals = T
+        else:
+            self.terminals = []
 
-    @_('expr')
-    def statment(self, p):
-        return (p.expr)
+        if P:
+            self.productions = P
+        else:
+            self.productions = {}
 
-    @_('')
-    def statment(self, p):
-        pass
+    def __str__(self):
+        '''Prints out G(V, T, S, P)'''
+        s = 'Grammar \n'
+        s = s + 'Start Symbol \n' + str(self.start) + '\n'
+        s = s + 'Terminals \n' + str(self.terminals) + '\n'
+        s = s + 'Variables \n' + str(self.variables) + '\n'
+        s = s + 'Productions \n' + str(self.productions) + '\n'
+        return s
+class Parser:
 
-    @_('OPEN_BRACKET expr CLOSED_BRACKET')
-    def expr(self, p):
-        return ("||", p.expr, p.term)
+    def __init__(self, grammar=None, table=None):
+        if table:
+            self.table = table
+        else:
+            self.table = {}
 
-    @_('expr OPERATION_OR term')
-    def expr(self, p):
-        return ("||", p.expr , p.term)
+        self.grammar = grammar
+        self.stack = []
 
-    @_('term')
-    def expr(self, p):
-        return (p.term)
+    def set_table(self, table):
+        self.table = table
 
-    @_('term OPERATION_AND factor')
-    def term(self, p):
-        return ("&&", p.term, p.factor)
+    def set_grammar(self, grammar):
+        self.grammar = grammar
 
-    @_('factor')
-    def term(self, p):
-        return (p.factor)
+    def parse(self, input, verbose=False):
+        self.stack = []
+        stack = self.stack
+        grammar = self.grammar
+        table = self.table
+        stack.append('$')
+        stack.append(grammar.start)
+        input.append('$')
+        next = input.pop(0)
 
-    @_('factor comop operand')
-    def factor(self, p):
-        return (p.comop, p.factor, p.operand)
+        while stack and next:
+            if verbose: print(input, 'next :', next)
+            tos = stack.pop()
+            if verbose: print(stack, 'tos : ', tos)
 
-    @_('operand')
-    def factor(self, p):
-        return (p.operand)
+            if tos in grammar.variables:
+                p = table[tos].get(next, None)
+                if p == None:
+                    return False
+                if p != '':
+                    stack.extend(p.split(" ")[::-1])
+            else:
+                if next == tos:
+                    if input:
+                        next = input.pop(0)
 
-    @_('GT')
-    def comop(self, p):
-        return (">")
+                else:
+                    print("String does not belong to the Grammar")
+                    return False
 
-    @_('GE')
-    def comop(self, p):
-        return (">=")
+        return True
+def parse(input:str):
 
-    @_('LT')
-    def comop(self, p):
-        return ("<")
-
-    @_('LE')
-    def comop(self, p):
-        return ("<=")
-
-    @_('EQ')
-    def comop(self, p):
-        return ("==")
-
-    @_('NE')
-    def comop(self, p):
-        return ("!=")
-
-    @_('OPERATION_NOT operand')
-    def operand(self, p):
-        return ('!', p.operand)
-
-    @_('identifier')
-    def operand(self, p):
-        return (p.identifier)
-
-    @_('ID')
-    def identifier(self, p):
-        return (p.ID)
-
-    @_('NUMBER')
-    def identifier(self, p):
-        return (p.NUMBER)
-
-
+    rules = "exp : term exp`\n" \
+            "exp` : or term |\n" \
+            "term : factor term`\n" \
+            "term` : and factor |\n" \
+            "factor : operand factor`\n" \
+            "factor` : comop operand |\n" \
+            "comop : > | = | <\n" \
+            "operand : ! operand | identifier"
+    variables = ['exp', 'exp`', 'term', 'term`', 'factor', 'factor`', 'comop', 'operand']
+    terminals = ['or', '', 'and', '>', '=', '<', '!', 'identifier']
+    productions = {'exp': ['term exp`'],
+                   'exp`': ['or term', ''],
+                   'term': ['factor term`', ''],
+                   'term`': ['and factor'],
+                   'factor': ['operand factor`'],
+                   'factor`': ['comop operand', ''],
+                   'comop': ['>', '=', '<'],
+                   'operand': ['! operand', 'identifier']}
+    start_var = "exp"
+    first = {'or': ['or'],
+             '': [''],
+             'and': ['and'],
+             '>': ['>'],
+             '=': ['='],
+             '<': ['<'],
+             '!': ['!'],
+             'identifier': ['identifier'],
+             'exp': ['identifier', '!'],
+             'term': ['identifier', '!'],
+             'factor': ['identifier', '!'],
+             'operand': ['identifier', '!'],
+             'exp`': ['', 'or'],
+             'term`': ['', 'and'],
+             'factor`': ['<', '>', '', '='],
+             'comop': ['<', '>', '=']}
+    follow = {'exp': ['$'],
+              'exp`': ['$'],
+              'term': ['$', 'or'],
+              'term`': ['$', 'or'],
+              'factor': ['$', 'and', 'or'],
+              'factor`': ['$', 'and', 'or'],
+              'comop': ['identifier', '!'],
+              'operand': ['and', '=', '<', '>', '$', 'or']}
+    parsing_table = {'exp': {'identifier': 'term exp`', '!': 'term exp`'},
+                     'exp`': {'or': 'or term', '$': ''},
+                     'term': {'identifier': 'factor term`', '!': 'factor term`'},
+                     'term`': {'and': 'and factor', '$': '', 'or': ''},
+                     'factor': {'identifier': 'operand factor`', '!': 'operand factor`'},
+                     'factor`': {'<': 'comop operand', '>': 'comop operand', '=': 'comop operand', '$': '', 'and': '',
+                                 'or': ''},
+                     'comop': {'>': '>', '=': '=', '<': '<'}, 'operand': {'!': '! operand', 'identifier': 'identifier'}}
+    grammer = Grammar(variables, terminals, start_var, productions)
+    parser = Parser(grammer)
+    parser.set_table(parsing_table)
+    return parser.parse(input.split(" "), verbose=True)
 class dfaprev(QtWidgets.QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -137,8 +186,6 @@ class dfaprev(QtWidgets.QDialog):
         lay = QtWidgets.QVBoxLayout(self)
         lay.addWidget(self.image_lbl)
         self.image_lbl.setPixmap(QtGui.QPixmap(resource_path("ourdfa2.jpg")))
-
-
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("Tiny Language Compiler")
@@ -360,10 +407,13 @@ class Ui_MainWindow(object):
 
 
 if __name__ == "__main__":
-    import sys
-    app = QtWidgets.QApplication(sys.argv)
-    MainWindow = QtWidgets.QMainWindow()
-    ui = Ui_MainWindow()
-    ui.setupUi(MainWindow)
-    MainWindow.show()
-    sys.exit(app.exec_())
+    input = 'identifier > identifier or identifier and identifier'
+    print(parse(input))
+
+    # import sys
+    # app = QtWidgets.QApplication(sys.argv)
+    # MainWindow = QtWidgets.QMainWindow()
+    # ui = Ui_MainWindow()
+    # ui.setupUi(MainWindow)
+    # MainWindow.show()
+    # sys.exit(app.exec_())
