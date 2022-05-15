@@ -1,0 +1,78 @@
+//Rules
+
+exp : term exp`
+exp` : or term |
+term : factor term`
+term` : and factor |
+factor : operand factor`
+factor` : comop operand |
+comop : > | = | <
+operand : ! operand | identifier
+
+
+//Variables
+
+['exp', 'exp`', 'term', 'term`', 'factor', 'factor`', 'comop', 'operand']
+
+
+//Terminals
+
+['or', '', 'and', '>', '=', '<', '!', 'identifier']
+
+//Productions
+
+{'exp': ['term exp`'],
+ 'exp`': ['or term', ''],
+ 'term': ['factor term`', ''],
+ 'term`': ['and factor'],
+ 'factor': ['operand factor`'],
+ 'factor`': ['comop operand', ''],
+ 'comop': ['>', '=', '<'],
+ 'operand': ['! operand', 'identifier']}
+
+//Starting Variable
+
+exp
+
+//First
+
+{'or': ['or'],
+ '': [''],
+ 'and': ['and'],
+ '>': ['>'],
+ '=': ['='],
+ '<': ['<'],
+ '!': ['!'],
+ 'identifier': ['identifier'],
+ 'exp': ['identifier', '!'],
+ 'term': ['identifier', '!'],
+ 'factor': ['identifier', '!'],
+ 'operand': ['identifier', '!'],
+ 'exp`': ['', 'or'],
+ 'term`': ['', 'and'],
+ 'factor`': ['<', '>', '', '='],
+ 'comop': ['<', '>', '=']}
+
+
+
+//Follow
+
+{'exp': ['$'],
+ 'exp`': ['$'],
+ 'term': ['$', 'or'],
+ 'term`': ['$', 'or'],
+ 'factor': ['$', 'and', 'or'],
+ 'factor`': ['$', 'and', 'or'],
+ 'comop': ['identifier', '!'],
+ 'operand': ['and', '=', '<', '>', '$', 'or']}
+
+
+//Table
+
+{'exp': {'identifier': 'term exp`', '!': 'term exp`'},
+ 'exp`': {'or': 'or term', '$': ''},
+ 'term': {'identifier': 'factor term`', '!': 'factor term`'},
+ 'term`': {'and': 'and factor', '$': '', 'or': ''},
+ 'factor': {'identifier': 'operand factor`', '!': 'operand factor`'},
+ 'factor`': {'<': 'comop operand', '>': 'comop operand', '=': 'comop operand', '$': '', 'and': '', 'or': ''},
+ 'comop': {'>': '>', '=': '=', '<': '<'}, 'operand': {'!': '! operand', 'identifier': 'identifier'}}
