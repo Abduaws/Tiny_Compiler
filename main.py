@@ -8,6 +8,7 @@ import random
 
 process = [["Stack"], ["Input"], ["Move"]]
 
+
 def resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
     try:
@@ -17,6 +18,8 @@ def resource_path(relative_path):
         base_path = os.path.abspath(".")
 
     return os.path.join(base_path, relative_path)
+
+
 class Compiler(Lexer):
     tokens = {NUMBER, ID,
               EQ, LT, LE, GT, GE, NE, OPERATION_AND, OPERATION_OR, OPERATION_NOT, OPEN_BRACKET, CLOSED_BRACKET}
@@ -47,6 +50,8 @@ class Compiler(Lexer):
     def error(self, t):
         raise ValueError('Line %d: Bad character %r' % (self.lineno, t.value[0]))
         self.index += 1
+
+
 class Grammar():
 
     def __init__(self, V=None, T=None, S=None, P=None):
@@ -78,6 +83,8 @@ class Grammar():
         s = s + 'Variables \n' + str(self.variables) + '\n'
         s = s + 'Productions \n' + str(self.productions) + '\n'
         return s
+
+
 class Parser:
 
     def __init__(self, grammar=None, table=None):
@@ -134,6 +141,8 @@ class Parser:
                     return False
 
         return True
+
+
 def parse(process, input:str):
     rules = "exp : term exp'\n" \
             "exp' : or term exp' |\n" \
@@ -189,6 +198,8 @@ def parse(process, input:str):
     parser = Parser(grammer)
     parser.set_table(parsing_table)
     return parser.parse(process, input.split(" "), verbose=False)
+
+
 class dfaprev(QtWidgets.QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -197,6 +208,8 @@ class dfaprev(QtWidgets.QDialog):
         lay = QtWidgets.QVBoxLayout(self)
         lay.addWidget(self.image_lbl)
         self.image_lbl.setPixmap(QtGui.QPixmap(resource_path("ourdfa2.jpg")))
+
+
 def hierarchy_pos(G, root=None, width=1., vert_gap=0.2, vert_loc=0, xcenter=0.5):
     '''
     From Joel's answer at https://stackoverflow.com/a/29597209/2966723.
@@ -259,6 +272,8 @@ def hierarchy_pos(G, root=None, width=1., vert_gap=0.2, vert_loc=0, xcenter=0.5)
         return pos
 
     return _hierarchy_pos(G, root, width, vert_gap, vert_loc, xcenter)
+
+
 def draw_ast(text:str):
     tree = nx.DiGraph()
     nodes = []
@@ -346,6 +361,7 @@ def draw_ast(text:str):
                 nodes.pop(index - 1)
                 nodes.insert(index - 1, parent)
                 break
+
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -817,6 +833,7 @@ class Ui_MainWindow(object):
                 pass
     def ast_click(self):
         draw_ast(self.parseinput.text())
+
 
 if __name__ == "__main__":
     import sys
