@@ -2,6 +2,9 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from sly import Lexer, Parser
 import os
 import copy
+import networkx as nx
+import matplotlib.pyplot as plt
+import random
 
 process = [["Stack"], ["Input"], ["Move"]]
 
@@ -132,22 +135,22 @@ class Parser:
 
         return True
 def parse(process, input:str):
-    rules = "exp : term exp`\n" \
-            "exp` : or term |\n" \
-            "term : factor term`\n" \
-            "term` : and factor |\n" \
-            "factor : operand factor`\n" \
-            "factor` : comop operand |\n" \
+    rules = "exp : term exp'\n" \
+            "exp' : or term exp' |\n" \
+            "term : factor term'\n" \
+            "term' : and factor term' |\n" \
+            "factor : operand factor'\n" \
+            "factor' : comop operand factor' |\n" \
             "comop : > | = | <\n" \
             "operand : ! operand | identifier"
-    variables = ['exp', 'exp`', 'term', 'term`', 'factor', 'factor`', 'comop', 'operand']
+    variables = ['exp', "exp'", 'term', "term'", 'factor', "factor'", 'comop', 'operand']
     terminals = ['or', '', 'and', '>', '=', '<', '!', 'identifier']
-    productions = {'exp': ['term exp`'],
-                   'exp`': ['or term', ''],
-                   'term': ['factor term`', ''],
-                   'term`': ['and factor'],
-                   'factor': ['operand factor`'],
-                   'factor`': ['comop operand', ''],
+    productions = {'exp': ["term exp'"],
+                   "exp'": ["or term exp'", ''],
+                   'term': ["factor term'"],
+                   "term'": ["and factor term'", ''],
+                   'factor': ["operand factor'"],
+                   "factor'": ["comop operand factor'", ''],
                    'comop': ['>', '=', '<'],
                    'operand': ['! operand', 'identifier']}
     start_var = "exp"
@@ -163,25 +166,24 @@ def parse(process, input:str):
              'term': ['identifier', '!'],
              'factor': ['identifier', '!'],
              'operand': ['identifier', '!'],
-             'exp`': ['', 'or'],
-             'term`': ['', 'and'],
-             'factor`': ['<', '>', '', '='],
-             'comop': ['<', '>', '=']}
+             "exp'": ['', 'or'],
+             "term'": ['', 'and'],
+             "factor'": ['', '>', '<', '='],
+             'comop': ['>', '<', '=']}
     follow = {'exp': ['$'],
-              'exp`': ['$'],
+              "exp'": ['$'],
               'term': ['$', 'or'],
-              'term`': ['$', 'or'],
+              "term'": ['$', 'or'],
               'factor': ['$', 'and', 'or'],
-              'factor`': ['$', 'and', 'or'],
-              'comop': ['identifier', '!'],
-              'operand': ['and', '=', '<', '>', '$', 'or']}
-    parsing_table = {'exp': {'identifier': 'term exp`', '!': 'term exp`'},
-                     'exp`': {'or': 'or term', '$': ''},
-                     'term': {'identifier': 'factor term`', '!': 'factor term`'},
-                     'term`': {'and': 'and factor', '$': '', 'or': ''},
-                     'factor': {'identifier': 'operand factor`', '!': 'operand factor`'},
-                     'factor`': {'<': 'comop operand', '>': 'comop operand', '=': 'comop operand', '$': '', 'and': '',
-                                 'or': ''},
+              "factor'": ['$', 'and', 'or'],
+              'comop': ['!', 'identifier'],
+              'operand': ['or', '>', '<', '$', '=', 'and']}
+    parsing_table = {'exp': {'identifier': "term exp'", '!': "term exp'"},
+                     "exp'": {'or': "or term exp'", '$': ''},
+                     'term': {'identifier': "factor term'", '!': "factor term'"},
+                     "term'": {'and': "and factor term'", '$': '', 'or': ''},
+                     'factor': {'identifier': "operand factor'", '!': "operand factor'"},
+                     "factor'": {'>': "comop operand factor'", '<': "comop operand factor'", '=': "comop operand factor'", '$': '', 'and': '', 'or': ''},
                      'comop': {'>': '>', '=': '=', '<': '<'}, 'operand': {'!': '! operand', 'identifier': 'identifier'}}
     grammer = Grammar(variables, terminals, start_var, productions)
     parser = Parser(grammer)
@@ -195,7 +197,159 @@ class dfaprev(QtWidgets.QDialog):
         lay = QtWidgets.QVBoxLayout(self)
         lay.addWidget(self.image_lbl)
         self.image_lbl.setPixmap(QtGui.QPixmap(resource_path("ourdfa2.jpg")))
+def hierarchy_pos(G, root=None, width=1., vert_gap=0.2, vert_loc=0, xcenter=0.5):
+    '''
+    From Joel's answer at https://stackoverflow.com/a/29597209/2966723.
+    Licensed under Creative Commons Attribution-Share Alike
 
+    If the graph is a tree this will return the positions to plot this in a
+    hierarchical layout.
+
+    G: the graph (must be a tree)
+
+    root: the root node of current branch
+    - if the tree is directed and this is not given,
+      the root will be found and used
+    - if the tree is directed and this is given, then
+      the positions will be just for the descendants of this node.
+    - if the tree is undirected and not given,
+      then a random choice will be used.
+
+    width: horizontal space allocated for this branch - avoids overlap with other branches
+
+    vert_gap: gap between levels of hierarchy
+
+    vert_loc: vertical location of root
+
+    xcenter: horizontal location of root
+    '''
+    if not nx.is_tree(G):
+        raise TypeError('cannot use hierarchy_pos on a graph that is not a tree')
+
+    if root is None:
+        if isinstance(G, nx.DiGraph):
+            root = next(iter(nx.topological_sort(G)))  # allows back compatibility with nx version 1.11
+        else:
+            root = random.choice(list(G.nodes))
+
+    def _hierarchy_pos(G, root, width=1., vert_gap=0.2, vert_loc=0, xcenter=0.5, pos=None, parent=None):
+        '''
+        see hierarchy_pos docstring for most arguments
+
+        pos: a dict saying where all nodes go if they have been assigned
+        parent: parent of this branch. - only affects it if non-directed
+
+        '''
+
+        if pos is None:
+            pos = {root: (xcenter, vert_loc)}
+        else:
+            pos[root] = (xcenter, vert_loc)
+        children = list(G.neighbors(root))
+        if not isinstance(G, nx.DiGraph) and parent is not None:
+            children.remove(parent)
+        if len(children) != 0:
+            dx = width / len(children)
+            nextx = xcenter - width / 2 - dx / 2
+            for child in children:
+                nextx += dx
+                pos = _hierarchy_pos(G, child, width=dx, vert_gap=vert_gap,
+                                     vert_loc=vert_loc - vert_gap, xcenter=nextx,
+                                     pos=pos, parent=root)
+        return pos
+
+    return _hierarchy_pos(G, root, width, vert_gap, vert_loc, xcenter)
+def draw_ast(text:str):
+    tree = nx.DiGraph()
+    nodes = []
+    text = text.split(" ")
+    labels = dict()
+    for index, element in enumerate(text): labels[index] = element
+    for index in range(0, len(text)): nodes.append(index)
+    while True:
+        if len(nodes) == 1:
+            print(labels)
+            for key, value in labels.items():
+                if len(value.split(" ")) > 1:
+                    labels[key] = value.split(" ")[1]
+            pos = hierarchy_pos(tree, root=nodes[0])
+            nx.draw_networkx(tree, pos=pos)
+            for node in list(tree.nodes):
+                x, y = pos[node]
+                plt.text(x, y + 0.07, s=labels[node], color="red", zorder=20.0,
+                        horizontalalignment='center')
+            plt.draw()
+            plt.show()
+            break
+        flag = False
+        for index in range(0, len(nodes)):
+            if labels[nodes[index]] == "or":
+                left = nodes[index-1]
+                right = nodes[index+1]
+                parent = max(nodes)+1
+                labels[parent] = labels[left] + " or " + labels[right]
+                tree.add_edge(parent, left)
+                tree.add_edge(parent, right)
+                nodes.pop(index - 1)
+                nodes.pop(index - 1)
+                nodes.pop(index - 1)
+                nodes.insert(index - 1, parent)
+                flag = True
+                break
+        if flag: continue
+        flag = False
+        for index in range(0, len(nodes)):
+            if labels[nodes[index]] == "and":
+                left = nodes[index - 1]
+                right = nodes[index + 1]
+                parent = max(nodes) + 1
+                labels[parent] = labels[left] + " and " + labels[right]
+                tree.add_edge(parent, left)
+                tree.add_edge(parent, right)
+                nodes.pop(index - 1)
+                nodes.pop(index - 1)
+                nodes.pop(index - 1)
+                nodes.insert(index - 1, parent)
+                flag = True
+                break
+        if flag: continue
+        for index in range(0, len(nodes)):
+            if labels[nodes[index]] == ">":
+                left = nodes[index - 1]
+                right = nodes[index + 1]
+                parent = max(nodes) + 1
+                labels[parent] = labels[left] + " > " + labels[right]
+                tree.add_edge(parent, left)
+                tree.add_edge(parent, right)
+                nodes.pop(index - 1)
+                nodes.pop(index - 1)
+                nodes.pop(index - 1)
+                nodes.insert(index - 1, parent)
+                break
+            elif labels[nodes[index]] == "<":
+                left = nodes[index - 1]
+                right = nodes[index + 1]
+                parent = max(nodes) + 1
+                labels[parent] = labels[left] + " < " + labels[right]
+                tree.add_edge(parent, left)
+                tree.add_edge(parent, right)
+                nodes.pop(index - 1)
+                nodes.pop(index - 1)
+                nodes.pop(index - 1)
+                nodes.insert(index - 1, parent)
+                break
+            elif labels[nodes[index]] == "=":
+                left = nodes[index - 1]
+                right = nodes[index + 1]
+                parent = max(nodes) + 1
+                labels[parent] = labels[left] + " = " + labels[right]
+                tree.add_edge(parent, left)
+                tree.add_edge(parent, right)
+                nodes.pop(index - 1)
+                nodes.pop(index - 1)
+                nodes.pop(index - 1)
+                nodes.insert(index - 1, parent)
+                break
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -382,6 +536,7 @@ class Ui_MainWindow(object):
         self.maincompilebtn.clicked.connect(self.maincompile_click)
         self.backbtn.clicked.connect(self.backbtn_click)
         self.parsebtn.clicked.connect(self.parse)
+        self.astbtn.clicked.connect(self.ast_click)
         self.timer.start()
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
@@ -626,7 +781,7 @@ class Ui_MainWindow(object):
         self.parsetable.setRowCount(0)
         self.process = [["Stack"], ["Input"], ["Move"]]
         if self.parseinput.text():
-            parse(self.process, input=self.parseinput.text())
+            print(parse(self.process, input=self.parseinput.text()))
             self.parsetable.setRowCount(0)
             self.parsetable.setColumnCount(3)
             self.parsetable.setEditTriggers(QtWidgets.QTableWidget.NoEditTriggers)
@@ -664,6 +819,8 @@ class Ui_MainWindow(object):
                 item.setText("Done")
                 self.parsetable.setItem(counter - 1, 2, item)
                 pass
+    def ast_click(self):
+        draw_ast(self.parseinput.text())
 
 if __name__ == "__main__":
     import sys
