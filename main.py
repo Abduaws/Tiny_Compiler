@@ -264,30 +264,26 @@ def draw_ast(text:str):
     nodes = []
     text = text.split(" ")
     labels = dict()
-    for index, element in enumerate(text): labels[index] = element
+    for index, element in enumerate(text): labels[index] = [element, element]
     for index in range(0, len(text)): nodes.append(index)
     while True:
         if len(nodes) == 1:
-            print(labels)
-            for key, value in labels.items():
-                if len(value.split(" ")) > 1:
-                    labels[key] = value.split(" ")[1]
             pos = hierarchy_pos(tree, root=nodes[0])
             nx.draw_networkx(tree, pos=pos)
             for node in list(tree.nodes):
                 x, y = pos[node]
-                plt.text(x, y + 0.07, s=labels[node], color="red", zorder=20.0,
+                plt.text(x, y + 0.07, s=labels[node][1], color="red", zorder=20.0,
                         horizontalalignment='center')
             plt.draw()
             plt.show()
             break
         flag = False
         for index in range(0, len(nodes)):
-            if labels[nodes[index]] == "or":
+            if labels[nodes[index]][0] == "or":
                 left = nodes[index-1]
                 right = nodes[index+1]
                 parent = max(nodes)+1
-                labels[parent] = labels[left] + " or " + labels[right]
+                labels[parent] = [labels[left][1] + " or " + labels[right][1], "or"]
                 tree.add_edge(parent, left)
                 tree.add_edge(parent, right)
                 nodes.pop(index - 1)
@@ -299,11 +295,11 @@ def draw_ast(text:str):
         if flag: continue
         flag = False
         for index in range(0, len(nodes)):
-            if labels[nodes[index]] == "and":
+            if labels[nodes[index]][0] == "and":
                 left = nodes[index - 1]
                 right = nodes[index + 1]
                 parent = max(nodes) + 1
-                labels[parent] = labels[left] + " and " + labels[right]
+                labels[parent] = [labels[left][1] + " and " + labels[right][1], "and"]
                 tree.add_edge(parent, left)
                 tree.add_edge(parent, right)
                 nodes.pop(index - 1)
@@ -314,11 +310,11 @@ def draw_ast(text:str):
                 break
         if flag: continue
         for index in range(0, len(nodes)):
-            if labels[nodes[index]] == ">":
+            if labels[nodes[index]][0] == ">":
                 left = nodes[index - 1]
                 right = nodes[index + 1]
                 parent = max(nodes) + 1
-                labels[parent] = labels[left] + " > " + labels[right]
+                labels[parent] = [labels[left][1] + " > " + labels[right][1], ">"]
                 tree.add_edge(parent, left)
                 tree.add_edge(parent, right)
                 nodes.pop(index - 1)
@@ -326,11 +322,11 @@ def draw_ast(text:str):
                 nodes.pop(index - 1)
                 nodes.insert(index - 1, parent)
                 break
-            elif labels[nodes[index]] == "<":
+            elif labels[nodes[index]][0] == "<":
                 left = nodes[index - 1]
                 right = nodes[index + 1]
                 parent = max(nodes) + 1
-                labels[parent] = labels[left] + " < " + labels[right]
+                labels[parent] = [labels[left][1] + " < " + labels[right][1], "<"]
                 tree.add_edge(parent, left)
                 tree.add_edge(parent, right)
                 nodes.pop(index - 1)
@@ -338,11 +334,11 @@ def draw_ast(text:str):
                 nodes.pop(index - 1)
                 nodes.insert(index - 1, parent)
                 break
-            elif labels[nodes[index]] == "=":
+            elif labels[nodes[index]][0] == "=":
                 left = nodes[index - 1]
                 right = nodes[index + 1]
                 parent = max(nodes) + 1
-                labels[parent] = labels[left] + " = " + labels[right]
+                labels[parent] = [labels[left][1] + " = " + labels[right][1], "="]
                 tree.add_edge(parent, left)
                 tree.add_edge(parent, right)
                 nodes.pop(index - 1)
