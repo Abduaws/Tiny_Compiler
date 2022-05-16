@@ -1,7 +1,9 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 from sly import Lexer, Parser
 import os
+import copy
 
+process = [["Stack"], ["Input"], ["Move"]]
 
 def resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
@@ -90,7 +92,7 @@ class Parser:
     def set_grammar(self, grammar):
         self.grammar = grammar
 
-    def parse(self, input, verbose=False):
+    def parse(self, process, input, verbose=False):
         self.stack = []
         stack = self.stack
         grammar = self.grammar
@@ -101,6 +103,10 @@ class Parser:
         next = input.pop(0)
 
         while stack and next:
+            input_copy = copy.deepcopy(input)
+            input_copy.insert(0, next)
+            process[0].append(copy.deepcopy(stack))
+            process[1].append(input_copy)
             if verbose: print(input, 'next :', next)
             tos = stack.pop()
             if verbose: print(stack, 'tos : ', tos)
@@ -110,10 +116,14 @@ class Parser:
                 if p == None:
                     return False
                 if p != '':
+                    process[2].append(f"{tos} -> {p}")
                     stack.extend(p.split(" ")[::-1])
+                else:
+                    process[2].append(f"{tos} -> ε")
             else:
                 if next == tos:
                     if input:
+                        process[2].append(f"pop -> {next}")
                         next = input.pop(0)
 
                 else:
@@ -121,8 +131,7 @@ class Parser:
                     return False
 
         return True
-def parse(input:str):
-
+def parse(process, input:str):
     rules = "exp : term exp`\n" \
             "exp` : or term |\n" \
             "term : factor term`\n" \
@@ -177,7 +186,7 @@ def parse(input:str):
     grammer = Grammar(variables, terminals, start_var, productions)
     parser = Parser(grammer)
     parser.set_table(parsing_table)
-    return parser.parse(input.split(" "), verbose=True)
+    return parser.parse(process, input.split(" "), verbose=False)
 class dfaprev(QtWidgets.QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -186,6 +195,8 @@ class dfaprev(QtWidgets.QDialog):
         lay = QtWidgets.QVBoxLayout(self)
         lay.addWidget(self.image_lbl)
         self.image_lbl.setPixmap(QtGui.QPixmap(resource_path("ourdfa2.jpg")))
+
+
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("Tiny Language Compiler")
@@ -258,19 +269,120 @@ class Ui_MainWindow(object):
         font.setPointSize(10)
         self.label_3.setFont(font)
         self.label_3.setObjectName("label_3")
+        self.parsetable = QtWidgets.QTableWidget(self.centralwidget)
+        self.parsetable.setGeometry(QtCore.QRect(10, 39, 1101, 481))
+        self.parsetable.setShowGrid(True)
+        self.parsetable.setWordWrap(True)
+        self.parsetable.setCornerButtonEnabled(True)
+        self.parsetable.setObjectName("parsetable")
+        self.parsetable.setColumnCount(3)
+        self.parsetable.setRowCount(1)
+        item = QtWidgets.QTableWidgetItem()
+        self.parsetable.setVerticalHeaderItem(0, item)
+        item = QtWidgets.QTableWidgetItem()
+        self.parsetable.setHorizontalHeaderItem(0, item)
+        item = QtWidgets.QTableWidgetItem()
+        self.parsetable.setHorizontalHeaderItem(1, item)
+        item = QtWidgets.QTableWidgetItem()
+        self.parsetable.setHorizontalHeaderItem(2, item)
+        self.parsetable.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
+        self.parseinput = QtWidgets.QLineEdit(self.centralwidget)
+        self.parseinput.setGeometry(QtCore.QRect(20, 530, 481, 31))
+        self.parseinput.setText("")
+        self.parseinput.setObjectName("parseinput")
+        self.horizontalLayoutWidget = QtWidgets.QWidget(self.centralwidget)
+        self.horizontalLayoutWidget.setGeometry(QtCore.QRect(510, 529, 591, 31))
+        self.horizontalLayoutWidget.setObjectName("horizontalLayoutWidget")
+        self.horizontalLayout_2 = QtWidgets.QHBoxLayout(self.horizontalLayoutWidget)
+        self.horizontalLayout_2.setContentsMargins(0, 0, 0, 0)
+        self.horizontalLayout_2.setObjectName("horizontalLayout_2")
+        self.parsebtn = QtWidgets.QPushButton(self.horizontalLayoutWidget)
+        self.parsebtn.setObjectName("parsebtn")
+        self.horizontalLayout_2.addWidget(self.parsebtn)
+        self.astbtn = QtWidgets.QPushButton(self.horizontalLayoutWidget)
+        self.astbtn.setObjectName("astbtn")
+        self.horizontalLayout_2.addWidget(self.astbtn)
+        self.parsetreebtn = QtWidgets.QPushButton(self.horizontalLayoutWidget)
+        self.parsetreebtn.setObjectName("parsetreebtn")
+        self.horizontalLayout_2.addWidget(self.parsetreebtn)
+        self.parselabel = QtWidgets.QLabel(self.centralwidget)
+        self.parselabel.setGeometry(QtCore.QRect(470, 0, 121, 41))
+        font = QtGui.QFont()
+        font.setPointSize(13)
+        self.parselabel.setFont(font)
+        self.parselabel.setObjectName("parselabel")
+        self.backbtn = QtWidgets.QPushButton(self.centralwidget)
+        self.backbtn.setGeometry(QtCore.QRect(990, 10, 93, 21))
+        self.backbtn.setObjectName("backbtn")
+        self.maincompilebtn = QtWidgets.QPushButton(self.centralwidget)
+        self.maincompilebtn.setGeometry(QtCore.QRect(340, 290, 191, 131))
+        font = QtGui.QFont()
+        font.setPointSize(14)
+        self.maincompilebtn.setFont(font)
+        self.maincompilebtn.setObjectName("maincompilebtn")
+        self.mainparsebtn = QtWidgets.QPushButton(self.centralwidget)
+        self.mainparsebtn.setGeometry(QtCore.QRect(570, 290, 191, 131))
+        font = QtGui.QFont()
+        font.setPointSize(14)
+        self.mainparsebtn.setFont(font)
+        self.mainparsebtn.setObjectName("mainparsebtn")
+        self.mainlabel = QtWidgets.QLabel(self.centralwidget)
+        self.mainlabel.setGeometry(QtCore.QRect(170, 130, 821, 121))
+        font = QtGui.QFont()
+        font.setPointSize(24)
+        self.mainlabel.setFont(font)
+        self.mainlabel.setAlignment(QtCore.Qt.AlignCenter)
+        self.mainlabel.setObjectName("mainlabel")
         MainWindow.setCentralWidget(self.centralwidget)
         self.statusbar = QtWidgets.QStatusBar(MainWindow)
         self.statusbar.setObjectName("statusbar")
         MainWindow.setStatusBar(self.statusbar)
 
 
+        if True:
+            self.codeinput.setDisabled(True)
+            self.label.setDisabled(True)
+            self.label_3.setDisabled(True)
+            self.label_2.setDisabled(True)
+            self.tokentable.setDisabled(True)
+            self.dfabtn.setDisabled(True)
+            self.regexbtn.setDisabled(True)
+            self.compilebtn.setDisabled(True)
+            self.codeinput.setHidden(True)
+            self.label.setHidden(True)
+            self.label_3.setHidden(True)
+            self.label_2.setHidden(True)
+            self.tokentable.setHidden(True)
+            self.dfabtn.setHidden(True)
+            self.regexbtn.setHidden(True)
+            self.compilebtn.setHidden(True)
+            self.astbtn.setDisabled(True)
+            self.parsebtn.setDisabled(True)
+            self.parsetreebtn.setDisabled(True)
+            self.parseinput.setDisabled(True)
+            self.parselabel.setDisabled(True)
+            self.parsetable.setDisabled(True)
+            self.astbtn.setHidden(True)
+            self.parsebtn.setHidden(True)
+            self.parsetreebtn.setHidden(True)
+            self.parseinput.setHidden(True)
+            self.parselabel.setHidden(True)
+            self.parsetable.setHidden(True)
+            self.backbtn.setDisabled(True)
+            self.backbtn.setHidden(True)
+
+
+        self.process = [["Stack"], ["Input"], ["Move"]]
         self.status = ""
         self.codeinput.setFontPointSize(10)
         self.compilebtn.clicked.connect(self.compile)
         self.dfabtn.clicked.connect(self.show_dfa)
         self.regexbtn.clicked.connect(self.show_regex)
+        self.mainparsebtn.clicked.connect(self.mainparse_click)
+        self.maincompilebtn.clicked.connect(self.maincompile_click)
+        self.backbtn.clicked.connect(self.backbtn_click)
+        self.parsebtn.clicked.connect(self.parse)
         self.timer.start()
-
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
     def retranslateUi(self, MainWindow):
@@ -284,6 +396,115 @@ class Ui_MainWindow(object):
         self.dfabtn.setText(_translate("MainWindow", "Preview Compiler DFA"))
         self.label_2.setText(_translate("MainWindow", "Token List:"))
         self.label_3.setText(_translate("MainWindow", "Status: "))
+        item = self.parsetable.verticalHeaderItem(0)
+        item.setText(_translate("MainWindow", "0"))
+        item = self.parsetable.horizontalHeaderItem(0)
+        item.setText(_translate("MainWindow", "Stack"))
+        item = self.parsetable.horizontalHeaderItem(1)
+        item.setText(_translate("MainWindow", "Input"))
+        item = self.parsetable.horizontalHeaderItem(2)
+        item.setText(_translate("MainWindow", "Move"))
+        self.parseinput.setPlaceholderText(_translate("MainWindow", "Enter Code To Parse!"))
+        self.parsebtn.setText(_translate("MainWindow", "Parse"))
+        self.astbtn.setText(_translate("MainWindow", "Show AST"))
+        self.parsetreebtn.setText(_translate("MainWindow", "Show Parse Tree"))
+        self.parselabel.setText(_translate("MainWindow", "LL(1) Parser"))
+        self.backbtn.setText(_translate("MainWindow", "Back"))
+        self.maincompilebtn.setText(_translate("MainWindow", "Compile"))
+        self.mainparsebtn.setText(_translate("MainWindow", "Parse"))
+        self.mainlabel.setText(_translate("MainWindow", "Welcome To Tiny Language Compiler!"))
+    def backbtn_click(self):
+        if self.astbtn.isHidden() == False:
+            self.astbtn.setDisabled(True)
+            self.parsebtn.setDisabled(True)
+            self.parsetreebtn.setDisabled(True)
+            self.parseinput.setDisabled(True)
+            self.parselabel.setDisabled(True)
+            self.parsetable.setDisabled(True)
+            self.astbtn.setHidden(True)
+            self.parsebtn.setHidden(True)
+            self.parsetreebtn.setHidden(True)
+            self.parseinput.setHidden(True)
+            self.parselabel.setHidden(True)
+            self.parsetable.setHidden(True)
+            self.backbtn.setDisabled(False)
+            self.backbtn.setHidden(False)
+        else:
+            self.codeinput.setDisabled(True)
+            self.label.setDisabled(True)
+            self.label_3.setDisabled(True)
+            self.label_2.setDisabled(True)
+            self.tokentable.setDisabled(True)
+            self.dfabtn.setDisabled(True)
+            self.regexbtn.setDisabled(True)
+            self.compilebtn.setDisabled(True)
+            self.codeinput.setHidden(True)
+            self.label.setHidden(True)
+            self.label_3.setHidden(True)
+            self.label_2.setHidden(True)
+            self.tokentable.setHidden(True)
+            self.dfabtn.setHidden(True)
+            self.regexbtn.setHidden(True)
+            self.compilebtn.setHidden(True)
+            self.backbtn.setDisabled(False)
+            self.backbtn.setHidden(False)
+
+        self.mainlabel.setDisabled(False)
+        self.mainparsebtn.setDisabled(False)
+        self.maincompilebtn.setDisabled(False)
+        self.mainlabel.setHidden(False)
+        self.mainparsebtn.setHidden(False)
+        self.maincompilebtn.setHidden(False)
+        self.backbtn.setDisabled(True)
+        self.backbtn.setHidden(True)
+    def maincompile_click(self):
+        self.mainlabel.setDisabled(True)
+        self.mainparsebtn.setDisabled(True)
+        self.maincompilebtn.setDisabled(True)
+        self.mainlabel.setHidden(True)
+        self.mainparsebtn.setHidden(True)
+        self.maincompilebtn.setHidden(True)
+
+        self.codeinput.setDisabled(False)
+        self.label.setDisabled(False)
+        self.label_3.setDisabled(False)
+        self.label_2.setDisabled(False)
+        self.tokentable.setDisabled(False)
+        self.dfabtn.setDisabled(False)
+        self.regexbtn.setDisabled(False)
+        self.compilebtn.setDisabled(False)
+        self.codeinput.setHidden(False)
+        self.label.setHidden(False)
+        self.label_3.setHidden(False)
+        self.label_2.setHidden(False)
+        self.tokentable.setHidden(False)
+        self.dfabtn.setHidden(False)
+        self.regexbtn.setHidden(False)
+        self.compilebtn.setHidden(False)
+        self.backbtn.setDisabled(False)
+        self.backbtn.setHidden(False)
+    def mainparse_click(self):
+        self.mainlabel.setDisabled(True)
+        self.mainparsebtn.setDisabled(True)
+        self.maincompilebtn.setDisabled(True)
+        self.mainlabel.setHidden(True)
+        self.mainparsebtn.setHidden(True)
+        self.maincompilebtn.setHidden(True)
+
+        self.astbtn.setDisabled(False)
+        self.parsebtn.setDisabled(False)
+        self.parsetreebtn.setDisabled(False)
+        self.parseinput.setDisabled(False)
+        self.parselabel.setDisabled(False)
+        self.parsetable.setDisabled(False)
+        self.astbtn.setHidden(False)
+        self.parsebtn.setHidden(False)
+        self.parsetreebtn.setHidden(False)
+        self.parseinput.setHidden(False)
+        self.parselabel.setHidden(False)
+        self.parsetable.setHidden(False)
+        self.backbtn.setDisabled(False)
+        self.backbtn.setHidden(False)
     def update_status(self):
         if self.status == "":
             if self.label_3.text() == "Status: ":self.label_3.setText("Status: Waiting")
@@ -341,7 +562,6 @@ class Ui_MainWindow(object):
         return current_state
     def compile(self):
         lexer = Compiler()
-        parser = ParserZ()
         env = {}
         data = self.codeinput.toPlainText()
         if not data:
@@ -390,8 +610,6 @@ class Ui_MainWindow(object):
             msg.setInformativeText(str(e))
             x = msg.exec_()
             return
-        tree = parser.parse(lexer.tokenize(data))
-        print(tree)
         self.timer.start()
         try:
             if data:
@@ -404,16 +622,54 @@ class Ui_MainWindow(object):
                     self.status = "Status: Parsing Failed"
         except:
             self.status = "Status: Parsing Failed"
-
+    def parse(self):
+        self.parsetable.setRowCount(0)
+        self.process = [["Stack"], ["Input"], ["Move"]]
+        if self.parseinput.text():
+            parse(self.process, input=self.parseinput.text())
+            self.parsetable.setRowCount(0)
+            self.parsetable.setColumnCount(3)
+            self.parsetable.setEditTriggers(QtWidgets.QTableWidget.NoEditTriggers)
+            item = QtWidgets.QTableWidgetItem()
+            item.setText("Stack")
+            self.parsetable.setHorizontalHeaderItem(0, item)
+            item = QtWidgets.QTableWidgetItem()
+            item.setText("Input")
+            self.parsetable.setHorizontalHeaderItem(1, item)
+            item = QtWidgets.QTableWidgetItem()
+            item.setText("Move")
+            self.parsetable.setHorizontalHeaderItem(2, item)
+            counter = 1
+            max_index = 0
+            for arr in self.process[0]:
+                if len(arr) > len(self.process[0][max_index]): max_index = self.process[0].index(arr)
+            try:
+                for index in range(1, len(self.process[0])):
+                    self.parsetable.setRowCount(counter)
+                    item = QtWidgets.QTableWidgetItem()
+                    item.setText(str(counter))
+                    self.parsetable.setVerticalHeaderItem(counter - 1, item)
+                    item = QtWidgets.QTableWidgetItem()
+                    item.setText(str(self.process[0][index]))
+                    self.parsetable.setItem(counter - 1, 0, item)
+                    item = QtWidgets.QTableWidgetItem()
+                    item.setText(str(self.process[1][index]))
+                    self.parsetable.setItem(counter - 1, 1, item)
+                    item = QtWidgets.QTableWidgetItem()
+                    item.setText(str(self.process[2][index]))
+                    self.parsetable.setItem(counter - 1, 2, item)
+                    counter += 1
+            except:
+                item = QtWidgets.QTableWidgetItem()
+                item.setText("Done")
+                self.parsetable.setItem(counter - 1, 2, item)
+                pass
 
 if __name__ == "__main__":
-    input = 'identifier > identifier or identifier and identifier'
-    print(parse(input))
-
-    # import sys
-    # app = QtWidgets.QApplication(sys.argv)
-    # MainWindow = QtWidgets.QMainWindow()
-    # ui = Ui_MainWindow()
-    # ui.setupUi(MainWindow)
-    # MainWindow.show()
-    # sys.exit(app.exec_())
+    import sys
+    app = QtWidgets.QApplication(sys.argv)
+    MainWindow = QtWidgets.QMainWindow()
+    ui = Ui_MainWindow()
+    ui.setupUi(MainWindow)
+    MainWindow.show()
+    sys.exit(app.exec_())
