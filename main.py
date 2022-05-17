@@ -9,7 +9,6 @@ from networkx.drawing.nx_pydot import graphviz_layout
 import random
 
 
-
 def resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
     try:
@@ -279,7 +278,7 @@ def hierarchy_pos(G, root=None, width=1., vert_gap=0.2, vert_loc=0, xcenter=0.5)
     return _hierarchy_pos(G, root, width, vert_gap, vert_loc, xcenter)
 
 
-def draw_ast(text:str):
+def draw_ast(text:str, verbose=False):
     tree = nx.DiGraph()
     nodes = []
     text = text.split(" ")
@@ -287,11 +286,14 @@ def draw_ast(text:str):
     for index, element in enumerate(text): labels[index] = [element, element]
     for index in range(0, len(text)): nodes.append(index)
     while True:
+        if verbose: print(nodes)
         if len(nodes) == 1:
             act_labels = dict()
             for node in list(tree.nodes):
                 if node in list(tree.nodes): act_labels[node] = labels[node][1]
-            pos = graphviz_layout(tree, prog="dot")
+            if verbose:print(labels)
+            pos = hierarchy_pos(tree)
+            #pos = graphviz_layout(tree, prog="dot")
             nx.draw_networkx(tree, pos=pos, labels=act_labels, node_size=[len(act_labels[node]) * 300 for node in list(tree.nodes)])
             plt.tight_layout()
             plt.show()
@@ -361,6 +363,15 @@ def draw_ast(text:str):
                 tree.add_edge(parent, left)
                 tree.add_edge(parent, right)
                 nodes.pop(index - 1)
+                nodes.pop(index - 1)
+                nodes.pop(index - 1)
+                nodes.insert(index - 1, parent)
+                break
+            elif labels[nodes[index]][0] == "!":
+                child = nodes[index + 1]
+                parent = max(nodes) + 1
+                labels[parent] = ["! " + labels[child][1], "!"]
+                tree.add_edge(parent, child)
                 nodes.pop(index - 1)
                 nodes.pop(index - 1)
                 nodes.insert(index - 1, parent)
@@ -894,7 +905,7 @@ class Ui_MainWindow(object):
                 self.parsetable.setItem(counter - 1, 2, item)
                 pass
     def ast_click(self):
-        draw_ast(self.parseinput.text())
+        draw_ast(self.parseinput.text(), verbose=True)
     def parse_tree_click(self):
         draw_parse_tree(self.process[-1][1::], True)
 
