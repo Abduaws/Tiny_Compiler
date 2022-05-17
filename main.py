@@ -4,9 +4,10 @@ import os
 import copy
 import networkx as nx
 import matplotlib.pyplot as plt
+import pydot
+from networkx.drawing.nx_pydot import graphviz_layout
 import random
 
-#process = [["Stack"], ["Input"], ["Move"]]
 
 
 def resource_path(relative_path):
@@ -197,7 +198,11 @@ def parse(process, input:str):
     grammer = Grammar(variables, terminals, start_var, productions)
     parser = Parser(grammer)
     parser.set_table(parsing_table)
-    return parser.parse(process, input.split(" "), verbose=False)
+    input = input.split(" ")
+    for index, elem in enumerate(input):
+        if elem != ">" and elem != "<" and elem != "=" and elem != "!" and elem != "and" and elem != "or":
+            input[index] = "identifier"
+    return parser.parse(process, input, verbose=False)
 
 
 class dfaprev(QtWidgets.QDialog):
@@ -283,13 +288,12 @@ def draw_ast(text:str):
     for index in range(0, len(text)): nodes.append(index)
     while True:
         if len(nodes) == 1:
-            pos = hierarchy_pos(tree, root=nodes[0])
-            nx.draw_networkx(tree, pos=pos)
+            act_labels = dict()
             for node in list(tree.nodes):
-                x, y = pos[node]
-                plt.text(x, y + 0.07, s=labels[node][1], color="red", zorder=20.0,
-                        horizontalalignment='center')
-            plt.draw()
+                if node in list(tree.nodes): act_labels[node] = labels[node][1]
+            pos = graphviz_layout(tree, prog="dot")
+            nx.draw_networkx(tree, pos=pos, labels=act_labels, node_size=[len(act_labels[node]) * 300 for node in list(tree.nodes)])
+            plt.tight_layout()
             plt.show()
             break
         flag = False
@@ -414,13 +418,9 @@ def draw_parse_tree(moves:list, verbose=False):
             if verbose:print(f"Parent {nodes[parent_index]} : {labels[nodes[parent_index]]}, child {child} : {labels[child]}")
             nodes.pop(parent_index)
             nodes.insert(parent_index, child)
-    pos = hierarchy_pos(tree)
-    nx.draw_networkx(tree, pos=pos)
-    for node in list(tree.nodes):
-        x, y = pos[node]
-        plt.text(x, y + 0.07, s=labels[node], color="red", zorder=20.0,
-                 horizontalalignment='center')
-    plt.draw()
+    pos = graphviz_layout(tree, prog="dot")
+    nx.draw_networkx(tree, pos=pos, labels=labels, node_size=[len(labels[node]) * 260 for node in list(tree.nodes)])
+    plt.tight_layout()
     plt.show()
 
 
