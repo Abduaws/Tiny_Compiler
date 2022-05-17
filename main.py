@@ -295,6 +295,7 @@ def draw_ast(text:str, verbose=False):
             pos = hierarchy_pos(tree)
             #pos = graphviz_layout(tree, prog="dot")
             nx.draw_networkx(tree, pos=pos, labels=act_labels, node_size=[len(act_labels[node]) * 300 for node in list(tree.nodes)])
+            plt.get_current_fig_manager().set_window_title("Abstract Syntax Tree Visualizer")
             plt.tight_layout()
             plt.show()
             break
@@ -432,6 +433,7 @@ def draw_parse_tree(moves:list, verbose=False):
     pos = graphviz_layout(tree, prog="dot")
     nx.draw_networkx(tree, pos=pos, labels=labels, node_size=[len(labels[node]) * 260 for node in list(tree.nodes)])
     plt.tight_layout()
+    plt.get_current_fig_manager().set_window_title("Parse Tree Visualizer")
     plt.show()
 
 
