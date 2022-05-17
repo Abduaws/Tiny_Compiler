@@ -6,7 +6,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import random
 
-process = [["Stack"], ["Input"], ["Move"]]
+#process = [["Stack"], ["Input"], ["Move"]]
 
 
 def resource_path(relative_path):
@@ -363,6 +363,67 @@ def draw_ast(text:str):
                 break
 
 
+def draw_parse_tree(moves:list, verbose=False):
+    tree = nx.DiGraph()
+    nodes = []
+    labels = dict()
+    labels[0] = "exp"
+    nodes.append(0)
+    tree.add_node(0)
+    for move in moves:
+        temp_m = move.split("->")
+        temp_prod = temp_m[1]
+        temp_prod = temp_prod.split(" ")
+        while "" in temp_prod:temp_prod.remove("")
+        parent_index = 0
+        if temp_m[0].strip() == "pop": continue
+        for index in range(0, len(nodes)):
+            if labels[nodes[index]] == temp_m[0].strip():
+                parent_index = index
+                break
+        if len(temp_prod) == 3:
+            left = max(nodes) + 1
+            mid = left + 1
+            right = mid + 1
+            labels[left] = temp_prod[0]
+            labels[mid] = temp_prod[1]
+            labels[right] = temp_prod[2]
+            tree.add_edge(nodes[parent_index], left)
+            tree.add_edge(nodes[parent_index], mid)
+            tree.add_edge(nodes[parent_index], right)
+            if verbose:print(f"Parent {nodes[parent_index]} : {labels[nodes[parent_index]]}, left {left} : {labels[left]}, mid {mid} : {labels[mid]}, right {right} : {labels[right]}")
+            nodes.pop(parent_index)
+            nodes.insert(parent_index, left)
+            nodes.insert(parent_index, mid)
+            nodes.insert(parent_index, right)
+        elif len(temp_prod) == 2:
+            left = max(nodes) + 1
+            right = left + 1
+            labels[left] = temp_prod[0]
+            labels[right] = temp_prod[1]
+            tree.add_edge(nodes[parent_index], left)
+            tree.add_edge(nodes[parent_index], right)
+            if verbose:print(f"Parent {nodes[parent_index]} : {labels[nodes[parent_index]]}, left {left} : {labels[left]}, right {right} : {labels[right]}")
+            nodes.pop(parent_index)
+            nodes.insert(parent_index, left)
+            nodes.insert(parent_index, right)
+        else:
+            child = max(nodes) + 1
+            labels[child] = temp_prod[0]
+            tree.add_edge(nodes[parent_index], child)
+            if verbose:print(f"Parent {nodes[parent_index]} : {labels[nodes[parent_index]]}, child {child} : {labels[child]}")
+            nodes.pop(parent_index)
+            nodes.insert(parent_index, child)
+    pos = hierarchy_pos(tree)
+    nx.draw_networkx(tree, pos=pos)
+    for node in list(tree.nodes):
+        x, y = pos[node]
+        plt.text(x, y + 0.07, s=labels[node], color="red", zorder=20.0,
+                 horizontalalignment='center')
+    plt.draw()
+    plt.show()
+
+
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("Tiny Language Compiler")
@@ -549,6 +610,7 @@ class Ui_MainWindow(object):
         self.backbtn.clicked.connect(self.backbtn_click)
         self.parsebtn.clicked.connect(self.parse)
         self.astbtn.clicked.connect(self.ast_click)
+        self.parsetreebtn.clicked.connect(self.parse_tree_click)
         self.timer.start()
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
@@ -833,6 +895,8 @@ class Ui_MainWindow(object):
                 pass
     def ast_click(self):
         draw_ast(self.parseinput.text())
+    def parse_tree_click(self):
+        draw_parse_tree(self.process[-1][1::], True)
 
 
 if __name__ == "__main__":
