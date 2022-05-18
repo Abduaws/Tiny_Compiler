@@ -286,7 +286,9 @@ def draw_ast(text:str, verbose=False):
     for index, element in enumerate(text): labels[index] = [element, element]
     for index in range(0, len(text)): nodes.append(index)
     while True:
-        if verbose: print(nodes)
+        if verbose:
+            print(labels)
+            print(nodes)
         if len(nodes) == 1:
             act_labels = dict()
             for node in list(tree.nodes):
@@ -299,6 +301,20 @@ def draw_ast(text:str, verbose=False):
             plt.tight_layout()
             plt.show()
             break
+        flag = False
+        for index in range(0, len(nodes)):
+            if labels[nodes[index]][0] == "!":
+                child = nodes[index + 1]
+                if labels[child][0] == "!":continue
+                parent = max(nodes) + 1
+                labels[parent] = ["! " + labels[child][1], "!"]
+                tree.add_edge(parent, child)
+                nodes.pop(index)
+                nodes.pop(index)
+                nodes.insert(index, parent)
+                flag = True
+                break
+        if flag: continue
         flag = False
         for index in range(0, len(nodes)):
             if labels[nodes[index]][0] == "or":
@@ -368,15 +384,6 @@ def draw_ast(text:str, verbose=False):
                 nodes.pop(index - 1)
                 nodes.insert(index - 1, parent)
                 break
-            elif labels[nodes[index]][0] == "!":
-                child = nodes[index + 1]
-                parent = max(nodes) + 1
-                labels[parent] = ["! " + labels[child][1], "!"]
-                tree.add_edge(parent, child)
-                nodes.pop(index - 1)
-                nodes.pop(index - 1)
-                nodes.insert(index - 1, parent)
-                break
 
 
 def draw_parse_tree(moves:list, verbose=False):
@@ -438,6 +445,7 @@ def draw_parse_tree(moves:list, verbose=False):
 
 
 class Ui_MainWindow(object):
+
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("Tiny Language Compiler")
         MainWindow.resize(1123, 600)
@@ -627,6 +635,7 @@ class Ui_MainWindow(object):
         self.timer.start()
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
+
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "Tiny Language Compiler"))
@@ -655,6 +664,7 @@ class Ui_MainWindow(object):
         self.maincompilebtn.setText(_translate("MainWindow", "Compile"))
         self.mainparsebtn.setText(_translate("MainWindow", "Parse"))
         self.mainlabel.setText(_translate("MainWindow", "Welcome To Tiny Language Compiler!"))
+
     def backbtn_click(self):
         if self.astbtn.isHidden() == False:
             self.astbtn.setDisabled(True)
@@ -699,6 +709,7 @@ class Ui_MainWindow(object):
         self.maincompilebtn.setHidden(False)
         self.backbtn.setDisabled(True)
         self.backbtn.setHidden(True)
+
     def maincompile_click(self):
         self.mainlabel.setDisabled(True)
         self.mainparsebtn.setDisabled(True)
@@ -725,6 +736,7 @@ class Ui_MainWindow(object):
         self.compilebtn.setHidden(False)
         self.backbtn.setDisabled(False)
         self.backbtn.setHidden(False)
+
     def mainparse_click(self):
         self.mainlabel.setDisabled(True)
         self.mainparsebtn.setDisabled(True)
@@ -747,6 +759,7 @@ class Ui_MainWindow(object):
         self.parsetable.setHidden(False)
         self.backbtn.setDisabled(False)
         self.backbtn.setHidden(False)
+
     def update_status(self):
         if self.status == "":
             if self.label_3.text() == "Status: ":self.label_3.setText("Status: Waiting")
@@ -754,6 +767,7 @@ class Ui_MainWindow(object):
         else:
             self.label_3.setText(self.status)
             self.timer.stop()
+
     def show_regex(self):
         msg = QtWidgets.QMessageBox()
         msg.setWindowTitle("RegExp")
@@ -776,9 +790,11 @@ class Ui_MainWindow(object):
               f"CLOSED BRACKET RegExp: {lexer.CLOSED_BRACKET}\n"
               f"The Full DFA RegExp: NUMBER|ID|ε|[[[NOT*[NUMBER|ID]]|[NUMBER|ID]][EQ|LE|LT|GE|GT|NE|AND|OR]]*[[NOT*[NUMBER|ID]]|[NUMBER|ID]]|[NOT*[NUMBER|ID]]\n")
         x = msg.exec_()
+
     def show_dfa(self):
         dialog = dfaprev(MainWindow)
         dialog.show()
+
     def get_next_state(self, token, current_state):
         if current_state == "START":
             if token == "ID" or token == "NUMBER":
@@ -802,6 +818,7 @@ class Ui_MainWindow(object):
         elif current_state == "FAILED":
             current_state = "FAILED"
         return current_state
+
     def compile(self):
         lexer = Compiler()
         env = {}
@@ -864,6 +881,7 @@ class Ui_MainWindow(object):
                     self.status = "Status: Parsing Failed"
         except:
             self.status = "Status: Parsing Failed"
+
     def parse(self):
         self.parsetable.setRowCount(0)
         self.process = [["Stack"], ["Input"], ["Move"]]
@@ -903,13 +921,36 @@ class Ui_MainWindow(object):
                     counter += 1
             except:
                 item = QtWidgets.QTableWidgetItem()
-                item.setText("Done")
+                if self.parsetable.item(self.parsetable.rowCount()-1, 0).text() == "['$']" and self.parsetable.item(self.parsetable.rowCount()-1, 1).text() == "['$']":
+                    item.setText("Success!")
+                    self.popup("Result", "Information", "Parsing Successful!", f"Parsing Finished in {self.parsetable.rowCount()} Steps")
+                else:
+                    item.setText("Fail!")
+                    self.popup("Result", "err", "Parsing Failed!", f"Parsing Failed at Step {self.parsetable.rowCount()}")
                 self.parsetable.setItem(counter - 1, 2, item)
-                pass
+
     def ast_click(self):
-        draw_ast(self.parseinput.text(), verbose=True)
+        if self.parsetable.item(self.parsetable.rowCount()-1, 2).text() != "Success!":
+            self.popup("Error", "err", "Failure", "Please Make Sure Parsing is Successful")
+        else:
+            try: draw_ast(self.parseinput.text(), verbose=False)
+            except: self.popup("Error", "err", "Failure", "Please Make Sure Parsing is Successful")
+
     def parse_tree_click(self):
-        draw_parse_tree(self.process[-1][1::], True)
+        try: draw_parse_tree(self.process[-1][1::], False)
+        except: self.popup("Error", "err", "Failure", "Please Make Sure Parsing is Successful")
+
+    def popup(self, title, msg_type,msg_title, msg_info, extra=""):
+        msg = QtWidgets.QMessageBox()
+        msg.setWindowTitle(title)
+        msg.setWindowIcon(QtGui.QIcon(resource_path("icon.png")))
+        msg.setText(msg_title)
+        if msg_type == "warn": msg.setIcon(QtWidgets.QMessageBox.Warning)
+        elif msg_type == "err": msg.setIcon(QtWidgets.QMessageBox.Critical)
+        else:msg.setIcon(QtWidgets.QMessageBox.Information)
+        msg.setInformativeText(msg_info)
+        if extra != "" : msg.setDetailedText(extra)
+        x = msg.exec_()
 
 
 if __name__ == "__main__":
