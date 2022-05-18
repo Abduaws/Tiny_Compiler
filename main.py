@@ -201,7 +201,7 @@ def parse(process, input:str):
     for index, elem in enumerate(input):
         if elem != ">" and elem != "<" and elem != "=" and elem != "!" and elem != "and" and elem != "or":
             input[index] = "identifier"
-    return parser.parse(process, input, verbose=False)
+    return parser.parse(process, input, verbose=True)
 
 
 class dfaprev(QtWidgets.QDialog):
@@ -317,22 +317,6 @@ def draw_ast(text:str, verbose=False):
         if flag: continue
         flag = False
         for index in range(0, len(nodes)):
-            if labels[nodes[index]][0] == "or":
-                left = nodes[index-1]
-                right = nodes[index+1]
-                parent = max(nodes)+1
-                labels[parent] = [labels[left][1] + " or " + labels[right][1], "or"]
-                tree.add_edge(parent, left)
-                tree.add_edge(parent, right)
-                nodes.pop(index - 1)
-                nodes.pop(index - 1)
-                nodes.pop(index - 1)
-                nodes.insert(index - 1, parent)
-                flag = True
-                break
-        if flag: continue
-        flag = False
-        for index in range(0, len(nodes)):
             if labels[nodes[index]][0] == "and":
                 left = nodes[index - 1]
                 right = nodes[index + 1]
@@ -347,6 +331,23 @@ def draw_ast(text:str, verbose=False):
                 flag = True
                 break
         if flag: continue
+        flag = False
+        for index in range(0, len(nodes)):
+            if labels[nodes[index]][0] == "or":
+                left = nodes[index-1]
+                right = nodes[index+1]
+                parent = max(nodes)+1
+                labels[parent] = [labels[left][1] + " or " + labels[right][1], "or"]
+                tree.add_edge(parent, left)
+                tree.add_edge(parent, right)
+                nodes.pop(index - 1)
+                nodes.pop(index - 1)
+                nodes.pop(index - 1)
+                nodes.insert(index - 1, parent)
+                flag = True
+                break
+        if flag: continue
+
         for index in range(0, len(nodes)):
             if labels[nodes[index]][0] == ">":
                 left = nodes[index - 1]
