@@ -4,7 +4,6 @@ import os
 import copy
 import networkx as nx
 import matplotlib.pyplot as plt
-import re
 import pydot
 from networkx.drawing.nx_pydot import graphviz_layout
 import random
@@ -144,78 +143,29 @@ class Parser:
         return True
 
 
-def get_input(input):
-    current = 0
-    tokens = []
-    alphabet = re.compile(r'[a-zA-Z_][a-zA-Z0-9_]*', re.I)
-    space = re.compile(r"\s")
-    while current < len(input):
-        char = input[current]
-        if re.match(space, char):
-            current = current+1
-            continue
-        elif char == '<':
-            tokens.append("<")
-            current = current+1
-            continue
-        elif char == '>':
-            tokens.append(">")
-            current = current+1
-            continue
-        elif char == '=':
-            tokens.append(">")
-            current = current+1
-            continue
-        elif char == '!':
-            tokens.append(">")
-            current = current+1
-            continue
-        elif char == '|':
-            if input[current+1] == "|":
-                tokens.append("||")
-                current = current+2
-                continue
-        elif char == '&':
-            if input[current+1] == "&":
-                tokens.append("&&")
-                current = current+2
-                continue
-        elif re.match(alphabet, char):
-            value = ''
-            while re.match(alphabet, char):
-                value += char
-                current = current+1
-                if current < len(input) :char = input[current]
-                else:break
-            tokens.append("identifier")
-            continue
-        raise ValueError('error wrong char: ' + char);
-    return tokens
-
-
 def parse(process, input:str):
     rules = "exp : term exp'\n" \
-            "exp' : || term exp' |\n" \
+            "exp' : or term exp' |\n" \
             "term : factor term'\n" \
-            "term' : && factor term' |\n" \
+            "term' : and factor term' |\n" \
             "factor : operand factor'\n" \
             "factor' : comop operand factor' |\n" \
             "comop : > | = | <\n" \
             "operand : ! operand | identifier"
     variables = ['exp', "exp'", 'term', "term'", 'factor', "factor'", 'comop', 'operand']
-    terminals = ['||', '', '&&', '>', '=', '<', '!', 'identifier']
+    terminals = ['or', '', 'and', '>', '=', '<', '!', 'identifier']
     productions = {'exp': ["term exp'"],
-                   "exp'": ["|| term exp'", ''],
+                   "exp'": ["or term exp'", ''],
                    'term': ["factor term'"],
-                   "term'": ["&& factor term'", ''],
+                   "term'": ["and factor term'", ''],
                    'factor': ["operand factor'"],
                    "factor'": ["comop operand factor'", ''],
                    'comop': ['>', '=', '<'],
                    'operand': ['! operand', 'identifier']}
     start_var = "exp"
-    first = {'||': ['||'],
+    first = {'or': ['or'],
              '': [''],
-             '&&': ['&&'],
+             'and': ['and'],
              '>': ['>'],
              '=': ['='],
              '<': ['<'],
@@ -225,30 +175,33 @@ def parse(process, input:str):
              'term': ['identifier', '!'],
              'factor': ['identifier', '!'],
              'operand': ['identifier', '!'],
-             "exp'": ['', '||'],
-             "term'": ['', '&&'],
+             "exp'": ['', 'or'],
+             "term'": ['', 'and'],
              "factor'": ['', '>', '<', '='],
              'comop': ['>', '<', '=']}
     follow = {'exp': ['$'],
               "exp'": ['$'],
-              'term': ['$', '||'],
-              "term'": ['$', '||'],
-              'factor': ['$', '&&', '||'],
-              "factor'": ['$', '&&', '||'],
+              'term': ['$', 'or'],
+              "term'": ['$', 'or'],
+              'factor': ['$', 'and', 'or'],
+              "factor'": ['$', 'and', 'or'],
               'comop': ['!', 'identifier'],
-              'operand': ['||', '>', '<', '$', '=', '&&']}
+              'operand': ['or', '>', '<', '$', '=', 'and']}
     parsing_table = {'exp': {'identifier': "term exp'", '!': "term exp'"},
-                     "exp'": {'||': "|| term exp'", '$': ''},
+                     "exp'": {'or': "or term exp'", '$': ''},
                      'term': {'identifier': "factor term'", '!': "factor term'"},
-                     "term'": {'&&': "&& factor term'", '$': '', '||': ''},
+                     "term'": {'and': "and factor term'", '$': '', 'or': ''},
                      'factor': {'identifier': "operand factor'", '!': "operand factor'"},
-                     "factor'": {'>': "comop operand factor'", '<': "comop operand factor'", '=': "comop operand factor'", '$': '', '&&': '', '||': ''},
+                     "factor'": {'>': "comop operand factor'", '<': "comop operand factor'", '=': "comop operand factor'", '$': '', 'and': '', 'or': ''},
                      'comop': {'>': '>', '=': '=', '<': '<'}, 'operand': {'!': '! operand', 'identifier': 'identifier'}}
     grammer = Grammar(variables, terminals, start_var, productions)
     parser = Parser(grammer)
     parser.set_table(parsing_table)
-    input = get_input(input)
-    return parser.parse(process, input, verbose=False)
+    input = input.split(" ")
+    for index, elem in enumerate(input):
+        if elem != ">" and elem != "<" and elem != "=" and elem != "!" and elem != "and" and elem != "or":
+            input[index] = "identifier"
+    return parser.parse(process, input, verbose=True)
 
 
 class dfaprev(QtWidgets.QDialog):
@@ -328,7 +281,7 @@ def hierarchy_pos(G, root=None, width=1., vert_gap=0.2, vert_loc=0, xcenter=0.5)
 def draw_ast(text:str, verbose=False):
     tree = nx.DiGraph()
     nodes = []
-    text = get_input(text)
+    text = text.split(" ")
     labels = dict()
     for index, element in enumerate(text): labels[index] = [element, element]
     for index in range(0, len(text)): nodes.append(index)
@@ -342,6 +295,7 @@ def draw_ast(text:str, verbose=False):
                 if node in list(tree.nodes): act_labels[node] = labels[node][1]
             if verbose:print(labels)
             pos = hierarchy_pos(tree)
+            #pos = graphviz_layout(tree, prog="dot")
             nx.draw_networkx(tree, pos=pos, labels=act_labels, node_size=[len(act_labels[node]) * 300 for node in list(tree.nodes)])
             plt.get_current_fig_manager().set_window_title("Abstract Syntax Tree Visualizer")
             plt.tight_layout()
@@ -363,11 +317,11 @@ def draw_ast(text:str, verbose=False):
         if flag: continue
         flag = False
         for index in range(0, len(nodes)):
-            if labels[nodes[index]][0] == "&&":
+            if labels[nodes[index]][0] == "and":
                 left = nodes[index - 1]
                 right = nodes[index + 1]
                 parent = max(nodes) + 1
-                labels[parent] = [labels[left][1] + " && " + labels[right][1], "&&"]
+                labels[parent] = [labels[left][1] + " and " + labels[right][1], "and"]
                 tree.add_edge(parent, left)
                 tree.add_edge(parent, right)
                 nodes.pop(index - 1)
@@ -379,11 +333,11 @@ def draw_ast(text:str, verbose=False):
         if flag: continue
         flag = False
         for index in range(0, len(nodes)):
-            if labels[nodes[index]][0] == "||":
+            if labels[nodes[index]][0] == "or":
                 left = nodes[index-1]
                 right = nodes[index+1]
                 parent = max(nodes)+1
-                labels[parent] = [labels[left][1] + " || " + labels[right][1], "||"]
+                labels[parent] = [labels[left][1] + " or " + labels[right][1], "or"]
                 tree.add_edge(parent, left)
                 tree.add_edge(parent, right)
                 nodes.pop(index - 1)
@@ -393,6 +347,7 @@ def draw_ast(text:str, verbose=False):
                 flag = True
                 break
         if flag: continue
+
         for index in range(0, len(nodes)):
             if labels[nodes[index]][0] == ">":
                 left = nodes[index - 1]
