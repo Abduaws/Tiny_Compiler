@@ -104,6 +104,7 @@ class Parser:
         self.grammar = grammar
 
     def parse(self, process, input, verbose=False):
+        if not input: return "err"
         self.stack = []
         stack = self.stack
         grammar = self.grammar
@@ -144,7 +145,7 @@ class Parser:
         return True
 
 
-def get_input(input):
+def get_input(input, flag=False):
     current = 0
     tokens = []
     alphabet = re.compile(r'[a-zA-Z_][a-zA-Z0-9_]*', re.I)
@@ -181,15 +182,20 @@ def get_input(input):
                 current = current+2
                 continue
         elif re.match(alphabet, char):
-            value = ''
-            while re.match(alphabet, char):
-                value += char
+            value = char
+            while re.fullmatch(alphabet, value):
                 current = current+1
-                if current < len(input) :char = input[current]
+                if current < len(input):
+                    char = input[current]
+                    if not re.fullmatch(alphabet, value+char):break
+                    value += char
                 else:break
+            if flag:
+                tokens.append(value)
+                continue
             tokens.append("identifier")
             continue
-        raise ValueError('error wrong char: ' + char);
+        else: return
     return tokens
 
 
@@ -328,7 +334,7 @@ def hierarchy_pos(G, root=None, width=1., vert_gap=0.2, vert_loc=0, xcenter=0.5)
 def draw_ast(text:str, verbose=False):
     tree = nx.DiGraph()
     nodes = []
-    text = get_input(text)
+    text = get_input(text, True)
     labels = dict()
     for index, element in enumerate(text): labels[index] = [element, element]
     for index in range(0, len(text)): nodes.append(index)
@@ -337,6 +343,14 @@ def draw_ast(text:str, verbose=False):
             print(labels)
             print(nodes)
         if len(nodes) == 1:
+            if len(tree.nodes) == 0:
+                tree.add_node(0)
+                node = nodes[0]
+                nx.draw_networkx(tree, labels={0:labels[node][1]}, node_size=len(labels[node][1])*360)
+                plt.get_current_fig_manager().set_window_title("Abstract Syntax Tree Visualizer")
+                plt.tight_layout()
+                plt.show()
+                break
             act_labels = dict()
             for node in list(tree.nodes):
                 if node in list(tree.nodes): act_labels[node] = labels[node][1]
@@ -932,7 +946,9 @@ class Ui_MainWindow(object):
         self.parsetable.setRowCount(0)
         self.process = [["Stack"], ["Input"], ["Move"]]
         if self.parseinput.text():
-            print(parse(self.process, input=self.parseinput.text()))
+            if parse(self.process, input=self.parseinput.text()) == "err":
+                self.popup("Error", "err", "Input Doesn't belong to Grammar!!", "Please Make Sure The String has passed Compilation Phase!")
+                return
             self.parsetable.setRowCount(0)
             self.parsetable.setColumnCount(3)
             self.parsetable.setEditTriggers(QtWidgets.QTableWidget.NoEditTriggers)
@@ -976,8 +992,12 @@ class Ui_MainWindow(object):
                 self.parsetable.setItem(counter - 1, 2, item)
 
     def ast_click(self):
-        if self.parsetable.item(self.parsetable.rowCount()-1, 2).text() != "Success!":
+        if not self.parsetable.item(self.parsetable.rowCount()-1, 2):
             self.popup("Error", "err", "Failure", "Please Make Sure Parsing is Successful")
+            return
+        elif self.parsetable.item(self.parsetable.rowCount()-1, 2).text() != "Success!":
+            self.popup("Error", "err", "Failure", "Please Make Sure Parsing is Successful")
+            return
         else:
             try: draw_ast(self.parseinput.text(), verbose=False)
             except: self.popup("Error", "err", "Failure", "Please Make Sure Parsing is Successful")
