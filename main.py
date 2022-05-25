@@ -150,52 +150,54 @@ def get_input(input, flag=False):
     tokens = []
     alphabet = re.compile(r'[a-zA-Z_][a-zA-Z0-9_]*', re.I)
     space = re.compile(r"\s")
-    while current < len(input):
-        char = input[current]
-        if re.match(space, char):
-            current = current+1
-            continue
-        elif char == '<':
-            tokens.append("<")
-            current = current+1
-            continue
-        elif char == '>':
-            tokens.append(">")
-            current = current+1
-            continue
-        elif char == '=':
-            tokens.append(">")
-            current = current+1
-            continue
-        elif char == '!':
-            tokens.append(">")
-            current = current+1
-            continue
-        elif char == '|':
-            if input[current+1] == "|":
-                tokens.append("||")
-                current = current+2
-                continue
-        elif char == '&':
-            if input[current+1] == "&":
-                tokens.append("&&")
-                current = current+2
-                continue
-        elif re.match(alphabet, char):
-            value = char
-            while re.fullmatch(alphabet, value):
+    try:
+        while current < len(input):
+            char = input[current]
+            if re.match(space, char):
                 current = current+1
-                if current < len(input):
-                    char = input[current]
-                    if not re.fullmatch(alphabet, value+char):break
-                    value += char
-                else:break
-            if flag:
-                tokens.append(value)
                 continue
-            tokens.append("identifier")
-            continue
-        else: return
+            elif char == '<':
+                tokens.append("<")
+                current = current+1
+                continue
+            elif char == '>':
+                tokens.append(">")
+                current = current+1
+                continue
+            elif char == '=':
+                tokens.append(">")
+                current = current+1
+                continue
+            elif char == '!':
+                tokens.append(">")
+                current = current+1
+                continue
+            elif char == '|':
+                if input[current+1] == "|":
+                    tokens.append("||")
+                    current = current+2
+                    continue
+            elif char == '&':
+                if input[current+1] == "&":
+                    tokens.append("&&")
+                    current = current+2
+                    continue
+            elif re.match(alphabet, char):
+                value = char
+                while re.fullmatch(alphabet, value):
+                    current = current+1
+                    if current < len(input):
+                        char = input[current]
+                        if not re.fullmatch(alphabet, value+char):break
+                        value += char
+                    else:break
+                if flag:
+                    tokens.append(value)
+                    continue
+                tokens.append("identifier")
+                continue
+            else: return
+    except:return
     return tokens
 
 
