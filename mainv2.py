@@ -169,7 +169,7 @@ def get_input(input, flag=False):
                 current = current+1
                 continue
             elif char == '!':
-                tokens.append(">")
+                tokens.append("!")
                 current = current+1
                 continue
             elif char == '|':
